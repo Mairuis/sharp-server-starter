@@ -13,14 +13,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class RequestRingBuffer implements RequestBuffer {
 
-    private static final int MAXIMUM_CAPACITY = 2048;
+    private static final int MAXIMUM_CAPACITY = 8096;
 
-    private final Request[] ring;
+    private final Request[] elements;
 
     private final AtomicInteger sequenceId = new AtomicInteger(0);
 
     public RequestRingBuffer(int capacity) {
-        this.ring = new Request[ringSizeOf(capacity)];
+        this.elements = new Request[ringSizeOf(capacity)];
     }
 
     private int nextId() {
