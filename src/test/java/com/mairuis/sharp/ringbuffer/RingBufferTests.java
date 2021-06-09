@@ -14,114 +14,49 @@ import java.util.concurrent.ThreadFactory;
 public class RingBufferTests {
 
     @Test
-    public void test() throws InterruptedException {
-        String message = "Hello Disruptor!";
-        Disruptor<MessageEvent> disruptor = new Disruptor<>(
-                MessageEvent::new
-                , 16
-                , new MessageThreadFactory()
-                , ProducerType.MULTI
-                , new BlockingWaitStrategy());
-        disruptor.handleEventsWith(new MessageEventHandler());
-        disruptor.setDefaultExceptionHandler(new MessageExceptionHandler());
-        RingBuffer<MessageEvent> ringBuffer = disruptor.start();
-        MessageEventProducer producer = new MessageEventProducer(ringBuffer);
-        for (; ; ) {
-            for (int i = 0; i < 5; i += 1) {
-                producer.onData(message);
+    public void testRingBuffer() throws InterruptedException {
+        // 队列中的元素
+        class Element {
+
+            private int value;
+
+            public int get() {
+                return value;
             }
-            Thread.sleep(1000);
-        }
-    }
 
-    /**
-     * 消息事件类
-     */
-    public static class MessageEvent {
-        /**
-         * 原始消息
-         */
-        private String message;
-
-        public String getMessage() {
-            return message;
-        }
-
-        public void setMessage(String message) {
-            this.message = message;
-        }
-    }
-
-    /**
-     * 消息转换类，负责将消息转换为事件
-     */
-    public static class MessageEventTranslator implements EventTranslatorOneArg<MessageEvent, String> {
-        @Override
-        public void translateTo(MessageEvent messageEvent, long l, String s) {
-            messageEvent.setMessage(s);
-        }
-    }
-
-    /**
-     * 消费者线程工厂类
-     */
-    public static class MessageThreadFactory implements ThreadFactory {
-        @Override
-        public Thread newThread(Runnable r) {
-            return new Thread(r, "Simple Disruptor Test Thread");
-        }
-    }
-
-    /**
-     * 消息事件处理类，这里只打印消息
-     */
-    public static class MessageEventHandler implements EventHandler<MessageEvent> {
-        @Override
-        public void onEvent(MessageEvent messageEvent, long l, boolean b) throws Exception {
-            System.out.println(Thread.currentThread().getName() + " " + messageEvent.getMessage());
-        }
-    }
-
-    /**
-     * 异常处理类
-     */
-    public static class MessageExceptionHandler implements ExceptionHandler<MessageEvent> {
-        @Override
-        public void handleEventException(Throwable ex, long sequence, MessageEvent event) {
-            ex.printStackTrace();
-        }
-
-        @Override
-        public void handleOnStartException(Throwable ex) {
-            ex.printStackTrace();
+            public void set(int value) {
+                this.value = value;
+            }
 
         }
 
-        @Override
-        public void handleOnShutdownException(Throwable ex) {
-            ex.printStackTrace();
+        ThreadFactory threadFactory = r -> new Thread(r, "simpleThread");
 
-        }
-    }
+        EventFactory<Element> factory = () -> new Element();
 
-    /**
-     * 消息生产者类
-     */
-    public static class MessageEventProducer {
-        private RingBuffer<MessageEvent> ringBuffer;
+        EventHandler<Element> handler = (element, sequence, endOfBatch) -> System.out.println("Element: " + element.get());
 
-        public MessageEventProducer(RingBuffer<MessageEvent> ringBuffer) {
-            this.ringBuffer = ringBuffer;
-        }
+        BlockingWaitStrategy strategy = new BlockingWaitStrategy();
 
-        /**
-         * 将接收到的消息输出到ringBuffer
-         *
-         * @param message
-         */
-        public void onData(String message) {
-            EventTranslatorOneArg<MessageEvent, String> translator = new MessageEventTranslator();
-            ringBuffer.publishEvent(translator, message);
+        int bufferSize = 16;
+
+        Disruptor<Element> disruptor = new Disruptor<>(factory, bufferSize, threadFactory, ProducerType.MULTI, strategy);
+
+        disruptor.handleEventsWith(handler);
+
+        disruptor.start();
+
+        RingBuffer<Element> ringBuffer = disruptor.getRingBuffer();
+
+        for (int l = 0; true; l++) {
+            long sequence = ringBuffer.next();
+            try {
+                Element event = ringBuffer.get(sequence);
+                event.set(l);
+            } finally {
+                ringBuffer.publish(sequence);
+            }
+            Thread.sleep(10);
         }
     }
 }
