@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Mairuis
  * @since 2021/6/3
  */
-public class RequestRingBuffer implements RequestBuffer {
+public class RequestRingDispatcher implements RequestDispatcher {
 
     private static final int MAXIMUM_CAPACITY = 8096;
 
@@ -19,7 +19,7 @@ public class RequestRingBuffer implements RequestBuffer {
 
     private final AtomicInteger sequenceId = new AtomicInteger(0);
 
-    public RequestRingBuffer(int capacity) {
+    public RequestRingDispatcher(int capacity) {
         this.elements = new Request[ringSizeOf(capacity)];
     }
 
@@ -28,18 +28,8 @@ public class RequestRingBuffer implements RequestBuffer {
     }
 
     @Override
-    public Request pull() {
-        return null;
-    }
+    public void publish(Request request) {
 
-    @Override
-    public Request get() {
-        return null;
-    }
-
-    @Override
-    public boolean buffered(Request request) {
-        return false;
     }
 
     private static int ringSizeOf(int capacity) {

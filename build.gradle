@@ -1,6 +1,8 @@
 plugins {
     id 'java'
+
 }
+compileJava.options.encoding = 'UTF-8'
 
 group 'com.mairuis.sharp'
 version '1.0'
@@ -16,6 +18,7 @@ dependencies {
     implementation group: 'com.lmax', name: 'disruptor', version: '3.4.4'
 
 }
+
 
 test {
     useJUnitPlatform()
