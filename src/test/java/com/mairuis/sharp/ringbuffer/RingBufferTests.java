@@ -1,11 +1,15 @@
 package com.mairuis.sharp.ringbuffer;
 
-import com.lmax.disruptor.*;
+import com.lmax.disruptor.BlockingWaitStrategy;
+import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.WorkHandler;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Mairuis
@@ -29,20 +33,18 @@ public class RingBufferTests {
             }
 
         }
-
-        ThreadFactory threadFactory = r -> new Thread(r, "simpleThread");
-
-        EventFactory<Element> factory = () -> new Element();
-
-        EventHandler<Element> handler = (element, sequence, endOfBatch) -> System.out.println("Element: " + element.get());
+        final AtomicInteger tId = new AtomicInteger();
+        ThreadFactory threadFactory = r -> new Thread(r, "Worker-" + tId.incrementAndGet());
 
         BlockingWaitStrategy strategy = new BlockingWaitStrategy();
 
         int bufferSize = 16;
 
-        Disruptor<Element> disruptor = new Disruptor<>(factory, bufferSize, threadFactory, ProducerType.MULTI, strategy);
+        Disruptor<Element> disruptor = new Disruptor<>(Element::new, bufferSize, threadFactory, ProducerType.MULTI, strategy);
 
-        disruptor.handleEventsWith(handler);
+        WorkHandler<Element>[] handler = new WorkHandler[2];
+        Arrays.fill(handler, (WorkHandler<Element>) (element) -> System.out.println("Worker " + Thread.currentThread().getName() + " work on : " + element.get()));
+        disruptor.handleEventsWithWorkerPool(handler);
 
         disruptor.start();
 
@@ -56,7 +58,7 @@ public class RingBufferTests {
             } finally {
                 ringBuffer.publish(sequence);
             }
-            Thread.sleep(10);
+            Thread.sleep(1000);
         }
     }
 }
