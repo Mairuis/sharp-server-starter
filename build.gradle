@@ -17,7 +17,7 @@ dependencies {
     implementation group: 'com.netflix.hystrix', name: 'hystrix-core', version: '1.5.18'
     implementation group: 'com.lmax', name: 'disruptor', version: '3.4.4'
     implementation group: 'org.jctools', name: 'jctools-core', version: '3.3.0'
-
+    implementation 'io.netty:netty-all:4.1.65.Final'
 }
 
 
